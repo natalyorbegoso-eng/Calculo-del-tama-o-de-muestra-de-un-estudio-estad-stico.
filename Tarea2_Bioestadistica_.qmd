@@ -1,0 +1,561 @@
+---
+title: "Tarea 2-Bioestadística"
+format: html
+editor: visual
+---
+
+## ¿Cómo encontrar el tamaño de la muestra en un estudio?
+
+Imagina que vas a realizar tu primer estudio estadístico. Ya tienes tus preguntas listas, pero... ¿a quién se las vas a hacer? ¿A 10 personas? ¿A 100? ¿A 1000? Exacto, no lo sabemos, ¿verdad? Y aunque quisiéramos preguntarle a toda la población (censarla completa), eso sería muy caro, lento y casi imposible en la mayoría de los casos. Por eso, en vez de estudiar a todo el "universo", elegimos una muestra: un pedacito representativo de esa población. Pero surge la pregunta clave: ¿qué tan grande debe ser ese pedacito para que los resultados sean confiables? La respuesta es: depende de varios factores o parametrización que hoy vas a aprender a calcular paso a paso.
+
+Entonces, vamos con algunos puntos que debemos conocer para cada escenario de estudio.
+
+1.  **Define tu pregunta:**
+
+    -   ¿Qué quieres hacer, comparar o estimar?, ¿a cuántos grupos?¿uno, dos o más?, ¿antes y después de un mismo grupo?
+
+2.  **Identifica el tipo de variable resultado (también llamada desenlace):**
+
+    -   ¿Es un número que se mide? Entonces trabajas con medias o promedios.
+
+    -   ¿Es un sí /no, vacunado/no vacunado, enfermo/sano? Entonces trabajas con proporciones o prevalencias.
+
+3.  **Identifica el diseño:**
+
+    -   ¿Trabajas con una sola población y quieres conocer su promedio o prevalencia? Entonces estas frente a los Escenarios 1 y 2.
+
+    -   ¿Trabajas con dos poblaciones independientes y deseas conocer su promedio o prevalencia? Entonces estas frente a los Escenarios 3 y 4.
+
+    -   ¿Trabajas con dos poblaciones apareadas o con características particulares y deseas saber su promedio o prevalencia? Entonces estás frente a los Escenarios 5 y 6.
+
+    -   ¿Trabajas con dos o más poblaciones muestreadas de manera independiente y deseas conocer su promedio o prevalencia? Entonces estás frente a los Escenarios 7 y 8.
+
+4.  **Parametrización del cálculo de la muestra:**
+
+    +------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    | Término                                              | ¿Qué significa?                                                                                                                                                                                     |
+    +:====================================================:+:===================================================================================================================================================================================================:+
+    | **Nivel de significancia estadística (alfa)**        | Es una alarma o límite máximo que nosotros fijamos para aceptar el riesgo de rechazar una hipótesis nula que en realidad es verdadera.                                                              |
+    |                                                      |                                                                                                                                                                                                     |
+    |                                                      | Valor típico: 5% o 0.05                                                                                                                                                                             |
+    +------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    | **Poder de estudio (1- beta)**                       | Es la probabilidad de encontrar un efecto de interés cuando se prueba algo... siempre y cuando ese efecto exista en la realidad.                                                                    |
+    |                                                      |                                                                                                                                                                                                     |
+    |                                                      | Ejm: 0.2(poder bajo), 0.5(poder medio) y 0.8(poder grande).                                                                                                                                         |
+    +------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    | **Tamaño de efecto esperado/diferencia esperada(d)** | Es la magnitud, tamaño o fuerza de la diferencia o relación que tú estimas (o esperas) encontrar en tu estudio *antes* de recolectar los datos.                                                     |
+    +------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    | **Variabilidad de outcome (sd)**                     | Qué tan variables o revueltos están nuestros datos.                                                                                                                                                 |
+    +------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    | **Hipótesis(Ho)**                                    | Equivalencia(Queremos comprobar que nuestro resultados es similar a otros), Superioridad(nuestro resultados es mejor que otros) o No inferioridad( Que mi resultado no se quede muy lejos del otro) |
+    +------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    | **Nro. de grupos.**                                  | Grupos: 1, 2, más de 2.                                                                                                                                                                             |
+    +------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+## Cálculo del tamaño de la muestra
+
+Antes de iniciar con los cálculos, necesitas instalarte 2 librerías: "pwr" y "pwr2", además sugiero instalarte la versión de R 4.3.3.
+
+```{r}
+install.packages("pwr") 
+install.packages("pwr2")
+```
+
+Cargar los paquetes:
+
+```{r}
+library(pwr) #cálculos básicos de potencia usando 
+#tamaños de efectos y notaciones de Cohen 
+library(pwr2) #cálculo para ANOVA de una y dos vías
+```
+
+## Escenario 1: Muestra para estimar incrementos de una media en una misma población
+
+**Ejercicio 1:**
+
+Un equipo de investigadores desea evaluar si una nueva intervención puede reducir los niveles promedio de colesterol en adultos del distrito Huaral.
+
+Antes de implementar la intervención, se considera que el nivel promedio de colesterol en esta población es de 220 mg/dL. Los investigadores esperan que, después de la intervención, este valor disminuya hasta 190 mg/dL. A partir de estudios previos, se conoce que la desviación estándar de los niveles de colesterol es de 30 mg/dL.
+
+Para evaluar el efecto de la intervención, se desea realizar una prueba de hipótesis con un nivel de significancia de 0.05 y un poder estadístico de 80%.
+
+**Pregunta:**\
+¿Cuántos adultos se deben incluir en el estudio para tener suficiente evidencia estadística para detectar una disminución de 220 mg/dL a 190 mg/dL?
+
+Supuestos:
+
+-   2 colas
+
+-   Ho: m=m0
+
+-   Ha: m!=m0, m=220
+
+-   diff=30 (o ma=190)
+
+-   sd=30
+
+-   p=0.05
+
+-   power=0.80
+
+*Antes del cálculo del tamaño de muestra, debemos calcular el efecto de diseño, que será entregado a la función pwr.t.test.*
+
+-\> **Cálculo del efecto de diseño (d):** Para este cálculo lo primero que tenemos que hacer es calcular el efecto del diseño. En Quarto tenemos que ejecutar la siguiente fórmula para este escenario:
+
+$$d = |u1 - u2|/sd$$
+
+```{r}
+d = (220 - 190)/30
+d
+```
+
+-\> **n:** Calculamos el tamaño de muestra para el escenario 1.
+
+```{r}
+pwr.t.test(d=d, sig.level=0.05, power=0.80, type='one.sample')
+
+```
+
+**Comentario:** Con un 'n' igual a 9.93 redondeado al inmediato superior, se convierte en 10, por lo que, para este estudio se necesitaría de 10 personas con un poder de 0.8 y significancia de 0.05.
+
+**pero, ¿qué pasa con el tamaño de la muestra si cambiamos el poder del estudio?**
+
+```{r}
+pwr.t.test(d=d, sig.level=0.05, power=0.20, type='one.sample')
+pwr.t.test(d=d, sig.level=0.05, power=0.80, type='one.sample')
+pwr.t.test(d=d, sig.level=0.05, power=0.90, type='one.sample')
+```
+
++------------------------------+---------------------------------------+
+| Poder estadístico(power)     | Tamaño de la muestra(n)               |
++==============================+=======================================+
+| 20%                          | 4                                     |
++------------------------------+---------------------------------------+
+| 80%                          | 10                                    |
++------------------------------+---------------------------------------+
+| 90%                          | 13                                    |
++------------------------------+---------------------------------------+
+
+**Interpretación:** Con un poder de estudio del 20% la muestra se reduce a 4 participantes y con un poder de estudio del 90% la muestra aumenta a 13 personas. Como se observa en la tabla superior, ¿ vemos que a medida que aumentamos el poder del estudio, el tamaño de la muestra aumenta, y si el poder aumenta podemos estar más seguros de encontrar las diferencias si estas existiesen.
+
+**y, ¿Qué pasaría si estimamos el valor del poder?**
+
+-\> **Poder:** Si ya tenemos el `n` mínimo, podemos calcular el poder de estudio que obtendríamos si modificamos este `n`.
+
+```{r}
+pwr.t.test(n=10, d=d, sig.level=0.05, type='one.sample')
+```
+
+**Comentario:** Ahora con una muestra de 10 y un tamaño de efecto 1, se obtuvo un poder de estudio igual a 80.3%, similar al que habíamos seteado inicialmente. Esto nos indica que efectivamente, un tamaño de 10 es un buen estimado para evitar el error de tipo II, es decir, no rechazar la hipótesis nula cuando esta es falsa.
+
+-\> **Efecto de diseño:** De la misma manera podemos especificar el `n` y el poder para calcular cuál es el efecto de diseño que obtendríamos.
+
+```{r}
+pwr.t.test(n=10, sig.level=0.05, power=.80, type='one.sample')
+```
+
+**Conclusión 1:**
+
+Como observamos, en un escenario 1 podemos estimar el tamaño de muestra siempre que nuestro objetivo sea comparar el valor medio o promedio de una única población en base a una referencia conocida. Además de que podemos ampliar o disminuir el tamaño de la muestra según configuremos las parámetros como el tamaño del efecto o el poder del estudio.
+
+## Escenario 2: Muestra para estimar incrementos de una proporción en una misma población
+
+**Ejercicio 2:**
+
+En un colegio, el director sabe que actualmente 2 de cada 10 estudiantes llegan al colegio en bicicleta. Después de construir una nueva ciclovía cerca del colegio, espera que esta cantidad aumente a 3 de cada 10 estudiantes.
+
+Para comprobar si realmente aumentó el uso de bicicletas, el director quiere realizar un estudio con un nivel de significancia de 0.05 y una potencia estadística de 0.80.
+
+**Pregunta:**\
+¿Cuántos estudiantes se deben incluir en el estudio para poder detectar un aumento del 20% al 30% en el uso de bicicletas?
+
+Supuestos:
+
+-   2 colas
+-   Ho: p=p0
+-   Ha: p!=p0, p=10%
+-   diff=20% (o p0=30%)
+-   p=0.05
+-   power=0.80
+
+-\> **Cálculo del efecto de diseño (h):** Para este cálculo lo primero que tenemos que hacer es calcular el efecto del diseñ o. Ejecutamos la siguiente fórmula para este escenario:
+
+$$
+h = 2 * arcsin(root(p1)) - 2 * arcsin(root(p2))
+$$
+
+Como referencia, tomen en consideración los siguientes valores: 0.2 \~ pequeño, 0.5 \~ medio y 0.8 \~ grande.
+
+```{r}
+h<-ES.h(0.1,0.3)
+h
+```
+
+-\> **n:** Calculamos el tamaño de muestra para el escenario 2.
+
+```{r}
+pwr.p.test(h=h , power=0.80, sig.level=0.05)  
+```
+
+-   El tamaño de la muestra es de 30 personas, porque no existe un 0.5 persona.
+
+**¿Qué sucede cuando tenemos un tamaño de muestra y queremos conocer el poder estadístico?**
+
+-\> **Poder:**
+
+```{r}
+pwr.p.test(h=h , n=30, sig.level=0.05)  
+
+```
+
+**Comentario:** Con un tamaño de muestra de 30, se halla un poder estadístico de 80.6%, si nos damos cuenta, es muy similar al recomendado, esto quiere decir que el investigador aumenta la seguridad en notar las diferencias del estudio si los existieran. Y para ello se usó la misma fórmula solo despejando el poder.
+
+-\> **Efecto de diseño:**
+
+```{r}
+pwr.p.test(n=30, sig.level=0.05, power=.80)  
+
+```
+
+**Conclusión 2:**
+
+Como vimos, en un escenario 2 podemos estimar el tamaño de muestra siempre que nuestro objetivo sea comparar prevalencias o proporciones de una única población en base a una referencia conocida. Además, podemos ampliar o disminuir el tamaño de la muestra según configuremos las parámetros como el tamaño del efecto o el poder del estudio. En donde el primero tiene una relación inversa y el segundo, directa respecto al tamaño de la muestra.
+
+## Escenario 3: Muestra para estimar diferencia de medias de dos poblaciones independientes con varianzas desiguales
+
+**Ejercicio 3:**
+
+Un investigador quiere saber si existe una diferencia en el nivel promedio de glucosa entre adultos de Los Olivos y adultos de San Miguel.
+
+Para realizar el estudio, se trabajará con dos grupos de personas diferentes: un grupo de adultos de Los Olivos y otro grupo de adultos de San Miguel. Como los niveles de glucosa pueden variar entre las personas, se estima una desviación estándar de 5.5 para el primer grupo y de 5 para el segundo.
+
+Como todavía no se conoce cuál será la diferencia real entre los dos grupos, se considera un tamaño de efecto mediano (d = 0.5).
+
+El investigador desea realizar el estudio con un nivel de significancia de 0.05 y un poder estadístico de 0.80.
+
+Pregunta:\
+¿Cuántas personas se necesitan en cada grupo para poder detectar una diferencia de tamaño mediano en los niveles promedio de glucosa entre los adultos de Los Olivos y San Miguel?
+
+Supuestos:
+
+-   2 colas
+-   Ho: m2=m1 vs Ha: m2!= m1
+-   sd1=5.5
+-   sd2=5
+-   p=0.05
+-   power=0.80
+
+-\> **Cálculo del efecto de diseño esperado**
+
+```{r}
+efecto_u2_u1<-cohen.ES(test="t",size="medium")
+efecto_u2_u1
+```
+
+-\> **n**
+
+```{r}
+pwr.t.test(d=.2, sig.level=0.05, power=0.80, type="two.sample",alternative="two.sided")
+pwr.t.test(d=.8, sig.level=0.05, power=0.80, type="two.sample",alternative="two.sided")
+```
+
+**Comentario:** Aquí cambiamos el tamaño del efecto del estudio, es decir, qué tan sencillo es o no encontrar diferencias en el estudio, para hacer esta comparación, calculamos dos valores extremos, para un d=0.2, necesitaríamos de 26\*3=78 personas, por otro lado, si tuviéramos un d=0.8, necesitaríamos de 394\*3=1182 personas para el estudio.
+
+-\> **Poder**
+
+```{r}
+pwr.t.test(d=.5, n=70, sig.level=0.05, type="two.sample",alternative="two.sided")
+```
+
+**Comentario:** Aquí queremos conocer el poder estadístico para un tamaño de muestra definida, siendo este 83%, por lo que con 70 personas por grupo y un tamaño de efecto medio(d=0.5) podemos mejorar la seguridad de encontrar diferencias entre las poblaciones si existen.
+
+-\> **Efecto de diseño**
+
+```{r}
+pwr.t.test(n=70, sig.level=0.05, power=0.80, type="two.sample",alternative="two.sided")
+```
+
+**Conclusión 3:** En un escenario 3 podemos comparar a la misma población pero en diferentes momentos, ya sea midiendo su media o promedio.
+
+## Escenario 4: Muestra para estimar diferencia de proporciones en dos poblaciones independientes
+
+**Ejercicio 4:**
+
+Un equipo de investigadores quiere descubrir si el **tipo de trabajo está relacionado con el sedentarismo** en adultos de la región de Ica.
+
+Para ello, comparará dos grupos de trabajadores que realizan actividades muy diferentes: por un lado, **trabajadores de oficina**, que pasan gran parte de su jornada sentados, y por otro, **trabajadores agrícolas**, cuyas actividades suelen implicar mayor movimiento físico.
+
+Según estudios previos, se espera que aproximadamente **el 43% de los trabajadores de oficina** sea sedentario, mientras que en los **trabajadores agrícolas** esta proporción sería de alrededor del **26%**.
+
+**Pregunta:**\
+¿Cuántos adultos se deberían incluir en cada grupo para poder comparar ambas proporciones y determinar si existe una diferencia en la prevalencia de sedentarismo?
+
+Supuestos:
+
+-   2 colas
+-   Ho: p2=p1 vs Ha: p2!=p1
+-   p1=43%
+-   diff=17% (o p2=26%)
+-   p=0.05
+-   power=0.80
+
+-\> **Calculo del efecto de diseño esperado**
+
+```{r}
+efecto_p2_p1<-ES.h(0.43,0.26)
+efecto_p2_p1
+```
+
+**Comentario:** El tamaño de efecto es pequeño-medio.
+
+-\> **n**
+
+```{r}
+pwr.2p.test(h=efecto_p2_p1, sig.leve =0.05, power=0.80,alternative="two.sided")
+```
+
+**Comentario:** En base al tamaño del efecto igual a 0.36, el tamaño de la muestra obtenido es 121 participantes por grupo independiente.
+
+-\> **Poder**
+
+```{r}
+pwr.2p.test(h=efecto_p2_p1, n=20 ,sig.level=0.05, alternative="two.sided")
+```
+
+**Comentario:** Si ahora tenemos un tamaño de muestra a priori de 20 y deseamos conocer el poder estadístico del mismo, se configura la función despejando la variable power, y como resultado tuvimos un poder de 20.6%, es un valor bajo, por lo que el investigador podría no encontrar suficientes diferencias entre los grupos estudiados si existiesen.
+
+-\> **Efecto de diseño:**
+
+```{r}
+pwr.2p.test(n=20, sig.leve =0.05, power=0.80,alternative="two.sided")
+```
+
+**Conclusión 4:** El escenario 4 es usado para evaluar las prevalencias entre dos poblaciones muestreadas independientemente. Además, se debe jugar con los parámetros para encontrar un equilibrio entre el poder estadístico, el tamaño de la muestra y el efecto de la muestra del estudio.
+
+## Escenario 5: Muestra para estimar diferencia de medias de dos muestras dependientes con varianzas iguales
+
+**Ejercicio 5:**
+
+Un equipo de fisioterapeutas quiere comprobar si un nuevo programa de rehabilitación ayuda a recuperar el rango de movimiento de la rodilla en pacientes que han sufrido una lesión.
+
+Para evaluar el efecto del programa, se medirá el rango de movimiento de los mismos pacientes antes y después de completar la fisioterapia. Se espera que, en promedio, el programa produzca una mejora de 5 grados en el movimiento articular. Además, se considera que la desviación estándar de las mediciones es de 1 grado tanto antes como después del programa.
+
+Pregunta: ¿Cuántos pacientes deberían participar en el estudio para poder detectar esta mejora con un 80% de potencia estadística y un nivel de significancia de 5%?
+
+Supuestos:
+
+-   2 colas
+-   Ho: d=d0
+-   Ha: d!= d0
+-   d0=5
+-   sd1=sd2=sd, sd=1
+-   p=0.05
+-   power=0.80
+
+-\> **Cálculo del efecto de diseño esperado:**
+
+```{r}
+
+efecto_u2p_u1p<-(0-1)/1
+efecto_u2p_u1p
+```
+
+-\> **n:**
+
+```{r}
+pwr.t.test(d=1, power=0.2, sig.level=0.05, type="paired", alternative="two.sided")
+
+```
+
+**Comentario:** Para un tamaño de efecto grande (d=1), el número de participantes necesario tiende a ser pequeño, ya que las diferencias grandes son más fáciles de detectar estadísticamente. Sin embargo, para un n=4 obtenido no solo se debe al tamaño del efecto, sino también a que se fijó un poder estadístico muy bajo (20%). Esto significa que, aunque el estudio requeriría pocos participantes, existiría una alta probabilidad (80%) de no detectar la diferencia entre las mediciones, incluso si esta realmente existiera. Por lo tanto, este tamaño de muestra no sería recomendable en la práctica, a pesar de parecer conveniente.
+
+-\> **Poder:**
+
+```{r}
+
+pwr.t.test(d=1, n=40, sig.level=0.05, type="paired", alternative="two.sided")
+```
+
+**Comentario:** Contrario al cálculo anterior, aquí estimamos el poder de estudio con un tamaño de muestra fijo n=40, por ello, el valor del poder aumentó pasando de un 20% -\> 99.9%. Sin embargo, en la práctica se recomienda usar un poder de 80% para reducir el gasto en recursos.
+
+```{r}
+pwr.t.test(d=1, power=0.8, sig.level=0.05, type="paired", alternative="two.sided")
+```
+
+**Comentario:** Como vimos, con un poder de estudio estándar y un tamaño de efecto alto, mejora el tamaño de la muestra.
+
+-\> **Efecto de diseño:**
+
+```{r}
+pwr.t.test(n=40, power=0.8, sig.level=0.05, type="paired", alternative="two.sided")
+
+```
+
+**Conclusión 5:** Este estudio es recomendable para poblaciones con características similares que se miden en diferentes momentos como los casos de estudios de antes y después de algún cambio. Además, comprobamos nuevamente que un buen balance entre variables nos ayuda a encontrar el tamaño óptimo de nuestra muestra.
+
+## Escenario 6: Muestra para análisis de tipo anova unidireccional (comparación de más de dos medias)
+
+**Ejercicio 6:**
+
+Un equipo de investigadores quiere comprobar si existen diferencias en el promedio de una determinada variable entre tres grupos independientes de pacientes.
+
+Para ello, se compararán los resultados obtenidos en los tres grupos, cuyos valores promedio esperados son de 50, 60 y 70 unidades, respectivamente. Se estima que la variabilidad dentro de los grupos es de 900 unidades².
+
+El equipo desea determinar cuántos participantes necesita para detectar una diferencia entre los grupos con un nivel de significancia del 5% y una potencia estadística del 80%.
+
+**Pregunta:** ¿Cuál debería ser el tamaño de muestra necesario para realizar la comparación mediante un ANOVA de una vía?
+
+Supuestos:
+
+-   2 colas
+-   Ho: delta =0 vs Ha: delta !=0
+-   m1=50
+-   m2=60
+-   m3=70
+-   var error=900
+-   p=0.05
+-   power=0.80
+
+-\> **Cálculo del efecto de diseño esperado**
+
+```{r}
+ 
+efecto_anova<-cohen.ES(test="anov",size="medium")
+efecto_anova
+
+```
+
+-\> **n**
+
+```{r}
+
+pwr.anova.test(f=0.25, k=3, sig.level=0.05, power=0.80)  
+```
+
+**Comentario:** El resultado indica cuántos participantes se necesitan para detectar un efecto de tamaño medio entre las tres medias, con un 5% de significancia y 80% de potencia. En este caso el tamaño de muestra es 3\*53=159 pacientes.
+
+**¿Qué pasa si partimos de un número de muestra?**
+
+-\> **Poder**
+
+```{r}
+
+pwr.anova.test(f=0.25, k=3, n=60, sig.level=0.05)  
+```
+
+**Comentario:** El poder del estudio aumentó, por lo que al tomar una muestra con un poco más de participantes, el estudio tendrá una mayor capacidad para detectar un efecto real, si este existe, reduciendo la probabilidad de no detectar un efecto que realmente está presente.
+
+-\> **Efecto de diseño**
+
+```{r}
+pwr.anova.test(k=3, n=60, sig.level=0.05, power=0.80)
+```
+
+**Comentario:** El tamaño del efecto obtenido manteniendo a 60 participantes por grupo y con un poder de 80% es de f=0.23. Este valor representa un efecto de magnitud intermedia, lo que indica que las diferencias entre las medias de los tres grupos presentan una magnitud moderada.
+
+**Conclusión 6:** Este estudio es ideal para muestras pareadas, es decir, uno donde las personas tienen características similares y en donde podemos comparar proporciones en diferentes momentos.
+
+## Escenario 7: Muestra para estimar la media entre dos o más poblaciones independientes
+
+**Ejercicio 7:**
+
+Un grupo de investigadores quiere evaluar si tres tratamientos diferentes producen cambios en el crecimiento de una bacteria. Para ello, realizarán un experimento con tres grupos independientes, donde cada grupo recibirá un tratamiento diferente.
+
+A partir de estudios preliminares, se obtuvieron los siguientes valores promedio de crecimiento bacteriano para los tres tratamientos:
+
+-    **Tratamiento 1:** 550 unidades
+
+-    **Tratamiento 2:** 598 unidades
+
+-    **Tratamiento 3:** 610 unidades
+
+Además, se estima que la variabilidad dentro de los grupos es de 6400 unidades².
+
+Los investigadores desean realizar el estudio con un 80% de poder estadístico y un nivel de significancia de 5%.
+
+**Pregunta:** ¿Cuántos participantes/unidades experimentales se necesitan por grupo para detectar diferencias entre las medias de los tres tratamientos?
+
+-\> **n:**
+
+```{r}
+grupos <- c(550,598,610)
+p <- power.anova.test(groups=length(grupos), between.var = var(grupos), within.var=6400, power = 0.8, sig.level = 0.05, n=NULL)
+
+p
+```
+
+**Comentario:** Se necesitarían de 3 grupos con 32 participantes por cada uno. Un total de 96 bacterias.
+
+-\> **Poder:**
+
+```{r}
+n=40
+p_anova <- power.anova.test(groups=3, between.var = var(grupos), within.var=6400, power = NULL, sig.level = 0.05, n=n)
+
+p_anova
+```
+
+Entonces, cuando tengamos 40 bacterias en cada grupo, tendremos una potencia de 0.89 o 89 %.
+
+Observemos la relación entre el tamaño de la muestra y el poder de estudio.
+
+```{r}
+plot(n,p_anova$power)
+```
+
+-\> **Tamaño del efecto**
+
+Con base en el cálculo anterior, el tamaño del efecto es la diferencia de las medias entre el grupo más bajo y el grupo más alto sobre la desviación estándar común media.
+
+```{r}
+(610-550)/80
+```
+
+**Conclusión 7:** Este ensayo es ideal para más de dos poblaciones estudiadas y comparar las medias o promedios frente a un outcome esperado.
+
+## Escenario 8:Prueba de proporción de más de dos muestras
+
+Un grupo de investigadores quiere estudiar qué factores influyen en el rendimiento académico de estudiantes universitarios.
+
+Para ello, analizarán dos factores:
+
+-    **Factor A: método de enseñanza**, con 2 grupos:
+
+    -    Método tradicional
+
+    -    Método basado en proyectos
+
+-    **Factor B: tipo de material educativo**, con 2 grupos:
+
+    -    Material impreso
+
+    -    Material digital
+
+Cada combinación de método de enseñanza y tipo de material contará con 40 estudiantes.
+
+Los investigadores quieren evaluar el poder estadístico del estudio. Para ello, consideran que el efecto esperado del factor A es moderado (0.25), mientras que el efecto esperado del factor B es grande (0.55).
+
+**Pregunta:** ¿Cuál es el poder estadístico del estudio para detectar el efecto principal del método de enseñanza (factor A) y el efecto principal del tipo de material educativo (factor B)?
+
+-\> **Poder:**
+
+```{r}
+
+pwr.2way(a=2, b=2, alpha=0.05, size.A=40, size.B=40, f.A=0.25, f.B=0.55)
+```
+
+El poder de estudio para el efecto principal A es 88% y para el efecto B es 100%.
+
+-\> **n:**
+
+```{r}
+ss.2way(a=2, b=2, alpha=0.05, beta=0.20, f.A=0.25, f.B=0.55,
+delta.A=NULL, delta.B=NULL, sigma.A=NULL, sigma.B=NULL, B=40)
+
+```
+
+**Comentario:** El número de estudiantes por cada grupo es de 32, pero como hay 4 grupos, dos por cada factor, resulta en un total de 128 participantes.
+
+**Conclusión 8:**
+
+En este ejercicio, el cálculo del poder permite determinar si el tamaño de muestra planteado es suficiente para detectar los efectos esperados de los factores A y B.
